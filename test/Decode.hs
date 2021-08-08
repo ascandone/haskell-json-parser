@@ -1,3 +1,5 @@
+{-# LANGUAGE NamedFieldPuns #-}
+
 module Decode (specs) where
 
 import Common (Person (Person))
