@@ -7,16 +7,16 @@ import Test.HUnit (
   runTestTT,
  )
 
-import qualified Decode
-import qualified Parse
-import qualified Parse2
+import qualified DecodeSpecs
+import qualified Parse2Specs
+import qualified ParseSpecs
 import qualified ParsingCombinatorsSpecs
 
 tests :: [Test]
 tests =
-  [ Decode.specs
+  [ DecodeSpecs.specs
   , ParsingCombinatorsSpecs.specs
-  , Parse2.specs
+  , Parse2Specs.specs
   ]
 
 main :: IO ()

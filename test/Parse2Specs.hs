@@ -1,4 +1,4 @@
-module Parse2 (specs) where
+module Parse2Specs (specs) where
 
 import Json.Parse2 (parseJson)
 import Test.HUnit (Assertion, Test (..), Testable (test), assertEqual)
@@ -29,6 +29,8 @@ primitives =
               assertJsEqual "integer" "0" (Enc.number 0.0)
           , TestCase $
               assertJsEqual "integer" "10" (Enc.number 10.0)
+          , TestCase $
+              assertJsEqual "integer" "-10" (Enc.number (-10.0))
           ]
           -- TODO escape chars
           -- , TestCase $

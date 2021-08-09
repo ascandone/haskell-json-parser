@@ -1,4 +1,4 @@
-module Parse (specs) where
+module ParseSpecs (specs) where
 
 import Json.Parse (parseJson)
 import Test.HUnit (Assertion, Test (..), Testable (test), assertEqual)

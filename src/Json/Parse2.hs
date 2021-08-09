@@ -1,16 +1,15 @@
 module Json.Parse2 (parseJson) where
 
-import Control.Applicative (optional)
+import Control.Applicative (Alternative (some), optional)
 import Control.Monad (void)
 import Json.Internal (Json (..))
 import ParsingCombinators (
   Parser,
   ParsingError,
+  char,
   choice,
   digit,
   fail,
-  many,
-  many1,
   parse,
   string,
  )
@@ -28,7 +27,7 @@ boolean =
     ]
 
 digits :: Parser [Int]
-digits = uncurry (:) <$> many1 digit
+digits = some digit
 
 -- >>> constructDigit [4, 2, 0]
 -- 420
@@ -39,11 +38,13 @@ constructDigit = sum . zipWith construct [0 ..] . reverse
 
 number :: Parser Float
 number = do
-  x <- optional (digit)
-  res <- many1 (digit)
-  case res of
-    (0, _ : _) -> fail "a number different than zero" "0"
-    (d, ds) -> return $ realToFrac $ constructDigit (d : ds)
+  sign <- optional (char '-')
+  res <- some digit
+  let n = realToFrac $ constructDigit res
+  case (res, sign) of
+    (0 : _ : _, _) -> fail "a number different than zero" "0"
+    (_, Just _) -> return (- n)
+    (_, Nothing) -> return n
 
 json :: Parser Json
 json =

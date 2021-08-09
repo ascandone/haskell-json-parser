@@ -61,9 +61,9 @@ test-suite json-parser-test
   main-is: Spec.hs
   other-modules:
       Common
-      Decode
-      Parse
-      Parse2
+      DecodeSpecs
+      Parse2Specs
+      ParseSpecs
       ParsingCombinatorsSpecs
       Paths_json_parser
   hs-source-dirs:

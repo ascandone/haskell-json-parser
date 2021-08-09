@@ -4,9 +4,6 @@ module ParsingCombinators (
   any,
   eof,
   fail,
-  try,
-  many,
-  many1,
   char,
   string,
   between,
@@ -57,9 +54,7 @@ instance Alternative Parser where
   empty = fail "X" "Y"
   parser <|> parser' = Parser $ \str ->
     case runParser parser str of
-      (str', left@(Left _))
-        | str == str' -> runParser parser' str
-        | otherwise -> (str', left)
+      (_, left@(Left _)) -> runParser parser' str
       ok -> ok
 
 fail :: String -> String -> Parser a
@@ -79,16 +74,10 @@ eof = Parser $ \str -> case str of
   [] -> ([], Right ())
   c : _ -> (str, Left $ ParsingError "the end of input" ['"', c, '"'])
 
-try :: Parser a -> Parser a
-try parser = Parser $ \str ->
-  case runParser parser str of
-    ok@(_, Right _) -> ok
-    (_, left) -> (str, left)
-
 -- Combinators
 
 choice :: String -> [Parser a] -> Parser a
-choice description = foldr (\x acc -> try x <|> acc) (fail description "no match")
+choice description = foldr (<|>) (fail description "no match")
 
 satisfy :: String -> (Char -> Bool) -> Parser Char
 satisfy description predicate = do
@@ -121,12 +110,6 @@ string (ch : chs) = (:) <$> char ch <*> string chs
 
 between :: Parser ignore -> Parser ignore2 -> Parser a -> Parser a
 between open close value = open *> value <* close
-
-many :: Parser a -> Parser [a]
-many parser = (try $ (uncurry (:)) <$> many1 parser) <|> return []
-
-many1 :: Parser a -> Parser (a, [a])
-many1 parser = (,) <$> parser <*> many parser
 
 sepBy :: ignore -> Parser a
 sepBy = undefined

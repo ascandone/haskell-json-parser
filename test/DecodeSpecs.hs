@@ -1,6 +1,6 @@
 {-# LANGUAGE NamedFieldPuns #-}
 
-module Decode (specs) where
+module DecodeSpecs (specs) where
 
 import Common (Person (Person))
 import qualified Data.Map as Map
