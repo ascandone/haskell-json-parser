@@ -13,7 +13,7 @@ module ParsingCombinators (
   digit,
 ) where
 
-import Control.Applicative (Alternative (empty, (<|>)), liftA2)
+import Control.Applicative (Alternative (empty, many, some, (<|>)), liftA2, optional)
 import Prelude hiding (any, fail)
 
 data ParsingError = ParsingError
@@ -102,7 +102,7 @@ digit =
     '7' -> return 7
     '8' -> return 8
     '9' -> return 9
-    _ -> fail "a digit" (['"', ch, '"'])
+    _ -> fail "a digit" ['"', ch, '"']
 
 string :: String -> Parser String
 string [] = return []
@@ -111,5 +111,9 @@ string (ch : chs) = (:) <$> char ch <*> string chs
 between :: Parser ignore -> Parser ignore2 -> Parser a -> Parser a
 between open close value = open *> value <* close
 
-sepBy :: ignore -> Parser a
-sepBy = undefined
+sepBy, sepBy1 :: Parser a -> Parser s -> Parser [a]
+sepBy p s = sepBy1 p s <|> return []
+sepBy1 p s = do
+  first <- p
+  rest <- many (s >> p)
+  return (first : rest)

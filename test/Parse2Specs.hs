@@ -39,44 +39,44 @@ primitives =
           --     assertJsEqual "strings" "\"hello\"" (Enc.string "hello")
     ]
 
--- arrays :: Test
--- arrays =
---   TestList
---     [ TestCase $
---         assertJsEqual
---           "empty arr"
---           "[]"
---           (Enc.array [])
---     , TestCase $
---         assertJsEqual
---           "arr of nums"
---           "[1, 2, 3]"
---           (Enc.array [Enc.number 1, Enc.number 2, Enc.number 3])
---     , TestCase $
---         assertJsEqual
---           "arr without commas"
---           "[1,2,3]"
---           (Enc.array [Enc.number 1, Enc.number 2, Enc.number 3])
---     , TestLabel "arr with whitespaces" $
---         let value = Enc.array [Enc.number 1, Enc.number 2]
---          in TestList
---               [ TestCase $
---                   assertJsEqual
---                     "arr with commas"
---                     "[1,   2]"
---                     value
---                     -- , TestCase $
---                     --     assertJsEqual
---                     --       "arr with commas"
---                     --       "[1,\r2]"
---                     --       value
---               ]
---     , TestCase $
---         assertJsEqual
---           "heterogeneous arr"
---           "[1, \"x\", null]"
---           (Enc.array [Enc.number 1, Enc.string "x", Enc.null])
---     ]
+arrays :: Test
+arrays =
+  TestList
+    [ TestCase $
+        assertJsEqual
+          "empty arr"
+          "[]"
+          (Enc.array [])
+    , TestCase $
+        assertJsEqual
+          "arr of nums"
+          "[1, 2, 3]"
+          (Enc.array [Enc.number 1, Enc.number 2, Enc.number 3])
+    , TestCase $
+        assertJsEqual
+          "arr without commas"
+          "[1,2,3]"
+          (Enc.array [Enc.number 1, Enc.number 2, Enc.number 3])
+    , TestLabel "arr with whitespaces" $
+        let value = Enc.array [Enc.number 1, Enc.number 2]
+         in TestList
+              [ TestCase $
+                  assertJsEqual
+                    "arr with commas"
+                    "[1,   2]"
+                    value
+              , TestCase $
+                  assertJsEqual
+                    "arr with commas"
+                    "[1  \r  \n , \t   2]"
+                    value
+              ]
+              -- , TestCase $
+              --     assertJsEqual
+              --       "heterogeneous arr"
+              --       "[1, \"x\", null]"
+              --       (Enc.array [Enc.number 1, Enc.string "x", Enc.null])
+    ]
 
 -- objects :: Test
 -- objects =
@@ -89,6 +89,6 @@ specs :: Test
 specs =
   TestList
     [ TestLabel "primitives" primitives
-    -- , TestLabel "arrays" arrays
+    , TestLabel "arrays" arrays
     -- , TestLabel "objects" objects
     ]

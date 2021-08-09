@@ -1,18 +1,20 @@
 module Json.Parse2 (parseJson) where
 
-import Control.Applicative (Alternative (some, (<|>)), optional)
+import Control.Applicative (Alternative (many, some, (<|>)), optional)
 import Control.Monad (void)
 import Data.Maybe (fromMaybe)
 import Json.Internal (Json (..))
 import ParsingCombinators (
   Parser,
   ParsingError,
+  between,
   char,
   choice,
   digit,
   eof,
   fail,
   parse,
+  sepBy,
   string,
  )
 import Prelude hiding (fail, null)
@@ -68,6 +70,11 @@ whitespace =
   void $
     char ' ' <|> char '\n' <|> char '\t' <|> char '\r'
 
+array :: Parser [Json]
+array = between (char '[') (char ']') (sepBy json separator)
+ where
+  separator = many whitespace >> char ',' >> many whitespace
+
 json :: Parser Json
 json =
   choice
@@ -75,6 +82,7 @@ json =
     [ Null <$ null
     , Boolean <$> boolean
     , Number <$> number
+    , Array <$> array
     ]
 
 parseJson :: String -> Either ParsingError Json
