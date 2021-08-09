@@ -34,11 +34,14 @@ primitives =
           , TestCase $
               assertJsEqual "float" "1.1" (Enc.number 1.1)
           ]
-    , -- TODO escape chars
-      TestLabel "strings" $
+    , TestLabel "strings" $
         TestList
           [ TestCase $
               assertJsEqual "strings" "\"hello\"" (Enc.string "hello")
+          , TestCase $
+              assertJsEqual "strings" "\"<\\n>\"" (Enc.string "<\n>")
+          , TestCase $
+              assertJsEqual "strings" "\"<\\\">\"" (Enc.string "<\">")
           ]
     ]
 

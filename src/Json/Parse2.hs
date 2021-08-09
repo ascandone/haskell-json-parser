@@ -76,12 +76,28 @@ array = between (char '[') (char ']') (sepBy json separator)
  where
   separator = many whitespace >> char ',' >> many whitespace
 
+escapeChar :: Parser Char
+escapeChar = do
+  ch <- ParsingCombinators.any
+  case ch of
+    '"' -> return '\"'
+    '\\' -> return '\\'
+    '/' -> return '/'
+    'b' -> return '\b'
+    'f' -> return '\f'
+    'n' -> return '\n'
+    'r' -> return '\r'
+    't' -> return '\t'
+    -- TODO unicode encoding
+    _ -> fail "expected escape char" [ch]
+
 string :: Parser String
 string = between (char '"') (char '"') $
   many $ do
     ch <- ParsingCombinators.any
     case ch of
       '"' -> fail "expected char" "\""
+      '\\' -> escapeChar
       _ -> return ch
 
 json :: Parser Json
