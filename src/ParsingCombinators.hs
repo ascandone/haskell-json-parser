@@ -5,22 +5,25 @@ module ParsingCombinators (
   eof,
   fail,
   try,
-  (<|>),
   many,
   many1,
   char,
   string,
   between,
   sepBy,
+  choice,
+  ParsingError,
+  digit,
 ) where
 
-import Control.Applicative (Applicative (liftA2))
+import Control.Applicative (Alternative (empty, (<|>)), liftA2)
 import Prelude hiding (any, fail)
 
 data ParsingError = ParsingError
   { expected :: String
   , encountered :: String
   }
+  deriving (Eq)
 
 instance Show ParsingError where
   show (ParsingError expected encountered) =
@@ -31,8 +34,8 @@ newtype Parser a = Parser
   { runParser :: String -> (String, Either ParsingError a)
   }
 
-parse :: Parser a -> String -> (String, Either ParsingError a)
-parse = runParser
+parse :: Parser a -> String -> Either ParsingError a
+parse parser str = let (_, result) = runParser parser str in result
 
 instance Functor Parser where
   fmap f parser = parser >>= (return . f)
@@ -49,6 +52,15 @@ instance Monad Parser where
     case runParser parser str of
       (str', Right x) -> runParser (f x) str'
       (str', Left e) -> (str', Left e)
+
+instance Alternative Parser where
+  empty = fail "X" "Y"
+  parser <|> parser' = Parser $ \str ->
+    case runParser parser str of
+      (str', left@(Left _))
+        | str == str' -> runParser parser' str
+        | otherwise -> (str', left)
+      ok -> ok
 
 fail :: String -> String -> Parser a
 fail expected encountered = Parser $ \str ->
@@ -73,20 +85,10 @@ try parser = Parser $ \str ->
     ok@(_, Right _) -> ok
     (_, left) -> (str, left)
 
--- TODO Alternative instance
--- TODO change representation using indexes
-(<|>) :: Parser a -> Parser a -> Parser a
-parser <|> parser' = Parser $ \str ->
-  case runParser parser str of
-    (str', left@(Left _))
-      | str == str' -> runParser parser' str
-      | otherwise -> (str', left)
-    ok -> ok
-
 -- Combinators
 
 choice :: String -> [Parser a] -> Parser a
-choice description = foldr (<|>) (fail description "no match")
+choice description = foldr (\x acc -> try x <|> acc) (fail description "no match")
 
 satisfy :: String -> (Char -> Bool) -> Parser Char
 satisfy description predicate = do
@@ -97,6 +99,21 @@ satisfy description predicate = do
 
 char :: Char -> Parser Char
 char ch = satisfy ['"', ch, '"'] (== ch)
+
+digit :: Parser Int
+digit =
+  any >>= \ch -> case ch of
+    '0' -> return 0
+    '1' -> return 1
+    '2' -> return 2
+    '3' -> return 3
+    '4' -> return 4
+    '5' -> return 5
+    '6' -> return 6
+    '7' -> return 7
+    '8' -> return 8
+    '9' -> return 9
+    _ -> fail "a digit" (['"', ch, '"'])
 
 string :: String -> Parser String
 string [] = return []

@@ -42,6 +42,11 @@ arrays =
           (Enc.array [Enc.number 1, Enc.number 2, Enc.number 3])
     , TestCase $
         assertJsEqual
+          "arr without commas"
+          "[1,2,3]"
+          (Enc.array [Enc.number 1, Enc.number 2, Enc.number 3])
+    , TestCase $
+        assertJsEqual
           "heterogeneous arr"
           "[1, \"x\", null]"
           (Enc.array [Enc.number 1, Enc.string "x", Enc.null])

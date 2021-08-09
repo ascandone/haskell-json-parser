@@ -9,11 +9,14 @@ import Test.HUnit (
 
 import qualified Decode
 import qualified Parse
+import qualified Parse2
+import qualified ParsingCombinatorsSpecs
 
 tests :: [Test]
 tests =
   [ Decode.specs
-  , Parse.specs
+  , ParsingCombinatorsSpecs.specs
+  , Parse2.specs
   ]
 
 main :: IO ()

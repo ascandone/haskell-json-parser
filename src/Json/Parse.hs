@@ -55,7 +55,9 @@ number =
 
 array :: Parser [Json]
 array =
-  between (symbol "[") (symbol "]") (json `sepBy` symbol ",")
+  between (symbol "[") (symbol "]") (json `sepBy` separator)
+ where
+  separator = symbol ","
 
 -- TODO letterChar
 string :: Parser String
