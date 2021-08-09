@@ -1,6 +1,6 @@
 module Json.Parse2 (parseJson) where
 
-import Control.Applicative (Alternative (some), optional)
+import Control.Applicative (Alternative (some, (<|>)), optional)
 import Control.Monad (void)
 import Data.Maybe (fromMaybe)
 import Json.Internal (Json (..))
@@ -62,6 +62,11 @@ number = do
     (0 : _ : _, _) -> fail "a number different than zero" "0"
     (_, Just _) -> return (- n)
     (_, Nothing) -> return n
+
+whitespace :: Parser ()
+whitespace =
+  void $
+    char ' ' <|> char '\n' <|> char '\t' <|> char '\r'
 
 json :: Parser Json
 json =
