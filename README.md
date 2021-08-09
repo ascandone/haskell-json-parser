@@ -2,7 +2,7 @@
 
 Json decoders and encoders.
 
-| **warning** this library is a minimal implementation of a json parser and is not meant for production use.
+> **warning** this library is a minimal implementation of a json parser and is not meant for production use.
 
 This module has 3 modules: `Json`, `Json.Parse`, `Json.Decode` and `Json.Encode`
 
