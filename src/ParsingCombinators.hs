@@ -31,6 +31,7 @@ newtype Parser a = Parser
   { runParser :: String -> (String, Either ParsingError a)
   }
 
+parse :: Parser a -> String -> (String, Either ParsingError a)
 parse = runParser
 
 instance Functor Parser where
@@ -112,19 +113,3 @@ many1 parser = (,) <$> parser <*> many parser
 
 sepBy :: ignore -> Parser a
 sepBy = undefined
-
--- ### TEST
-myParser :: Parser (Char, String)
-myParser = between (char '<') (char '>') (many1 (char 'a'))
-
-str :: String
-str = "<a>"
-
-chars :: Parser Char
-chars = satisfy "ch" (`elem` "abcdefghilmnopqrstuvz")
-
-problem =
-  between (char '{') (char '}') (many chars)
-
--- >>> parse problem "{pva}"
--- ("",Right "pva")

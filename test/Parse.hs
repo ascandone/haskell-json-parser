@@ -11,55 +11,53 @@ assertJsEqual :: String -> String -> Json -> Assertion
 assertJsEqual label stringJson exp =
   assertEqual label (parseJson stringJson) (Right exp)
 
-jsNull :: Test
-jsNull =
-  TestCase $
-    assertJsEqual "null" "null" (Enc.null)
-
-jsNumber :: Test
-jsNumber =
-  TestCase $
-    assertJsEqual "simple objs" "42" (Enc.number 42)
-
--- TODO escape chars
-jsStr :: Test
-jsStr =
-  TestCase $
-    assertJsEqual "simple objs" "\"hello\"" (Enc.string "hello")
-
-jsBool :: Test
-jsBool =
-  test
+primitives :: Test
+primitives =
+  TestList
     [ TestCase $
-        assertJsEqual "true" "true" (Enc.boolean True)
+        assertJsEqual "null" "null" (Enc.null)
+    , TestLabel "booleans" $
+        TestList
+          [ TestCase $
+              assertJsEqual "true" "true" (Enc.boolean True)
+          , TestCase $
+              assertJsEqual "false" "false" (Enc.boolean False)
+          ] -- TODO escape chars
     , TestCase $
-        assertJsEqual "false" "false" (Enc.boolean False)
+        assertJsEqual "strings" "\"hello\"" (Enc.string "hello")
     ]
 
-jsArr :: Test
-jsArr =
-  TestCase $
-    assertJsEqual
-      "arr of nums"
-      "[1, 2, 3]"
-      ( Enc.array [Enc.number 1, Enc.number 2, Enc.number 3]
-      )
+arrays :: Test
+arrays =
+  TestList
+    [ TestCase $
+        assertJsEqual
+          "empty arr"
+          "[]"
+          (Enc.array [])
+    , TestCase $
+        assertJsEqual
+          "arr of nums"
+          "[1, 2, 3]"
+          (Enc.array [Enc.number 1, Enc.number 2, Enc.number 3])
+    , TestCase $
+        assertJsEqual
+          "heterogeneous arr"
+          "[1, \"x\", null]"
+          (Enc.array [Enc.number 1, Enc.string "x", Enc.null])
+    ]
 
-jsObj :: Test
-jsObj =
-  TestCase $
-    assertJsEqual
-      "simple object"
-      "{\"x\": 42}"
-      ( Enc.object [("x", Enc.number 42)]
-      )
+objects :: Test
+objects =
+  TestList
+    [ TestCase $
+        assertJsEqual "simple objs" "42" (Enc.number 42)
+    ]
 
 specs :: Test
 specs =
-  test
-    [ jsNumber
-    , jsStr
-    , jsBool
-    , jsArr
-    , jsNull
+  TestList
+    [ TestLabel "primitives" primitives
+    , TestLabel "arrays" arrays
+    , TestLabel "objects" objects
     ]
