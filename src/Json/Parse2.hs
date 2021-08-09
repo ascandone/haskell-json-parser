@@ -7,6 +7,7 @@ import Json.Internal (Json (..))
 import ParsingCombinators (
   Parser,
   ParsingError,
+  any,
   between,
   char,
   choice,
@@ -20,14 +21,14 @@ import ParsingCombinators (
 import Prelude hiding (fail, null)
 
 null :: Parser ()
-null = void $ string "null"
+null = void $ ParsingCombinators.string "null"
 
 boolean :: Parser Bool
 boolean =
   choice
     "boolean"
-    [ True <$ string "true"
-    , False <$ string "false"
+    [ True <$ ParsingCombinators.string "true"
+    , False <$ ParsingCombinators.string "false"
     ]
 
 digits :: Parser [Int]
@@ -75,6 +76,14 @@ array = between (char '[') (char ']') (sepBy json separator)
  where
   separator = many whitespace >> char ',' >> many whitespace
 
+string :: Parser String
+string = between (char '"') (char '"') $
+  many $ do
+    ch <- ParsingCombinators.any
+    case ch of
+      '"' -> fail "expected char" "\""
+      _ -> return ch
+
 json :: Parser Json
 json =
   choice
@@ -83,6 +92,7 @@ json =
     , Boolean <$> boolean
     , Number <$> number
     , Array <$> array
+    , String <$> Json.Parse2.string
     ]
 
 parseJson :: String -> Either ParsingError Json

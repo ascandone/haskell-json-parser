@@ -1,7 +1,7 @@
 module Parse2Specs (specs) where
 
 import Json.Parse2 (parseJson)
-import Test.HUnit (Assertion, Test (..), Testable (test), assertEqual)
+import Test.HUnit (Assertion, AssertionPredicable (assertionPredicate), Test (..), Testable (test), assertEqual, assertFailure)
 import Test.HUnit.Lang (assertEqual)
 
 import Json (Json)
@@ -34,9 +34,12 @@ primitives =
           , TestCase $
               assertJsEqual "float" "1.1" (Enc.number 1.1)
           ]
-          -- TODO escape chars
-          -- , TestCase $
-          --     assertJsEqual "strings" "\"hello\"" (Enc.string "hello")
+    , -- TODO escape chars
+      TestLabel "strings" $
+        TestList
+          [ TestCase $
+              assertJsEqual "strings" "\"hello\"" (Enc.string "hello")
+          ]
     ]
 
 arrays :: Test
@@ -70,6 +73,14 @@ arrays =
                     "arr with commas"
                     "[1  \r  \n , \t   2]"
                     value
+              , TestCase $
+                  case parseJson "[1, 2, ???]" of
+                    Left _ -> return ()
+                    Right _ -> assertFailure "invalid arr"
+              , TestCase $
+                  case parseJson "[1, 2 ???]" of
+                    Left _ -> return ()
+                    Right _ -> assertFailure "invalid arr"
               ]
               -- , TestCase $
               --     assertJsEqual
