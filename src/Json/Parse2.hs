@@ -2,6 +2,7 @@ module Json.Parse2 (parseJson) where
 
 import Control.Applicative (Alternative (some), optional)
 import Control.Monad (void)
+import Data.Maybe (fromMaybe)
 import Json.Internal (Json (..))
 import ParsingCombinators (
   Parser,
@@ -9,6 +10,7 @@ import ParsingCombinators (
   char,
   choice,
   digit,
+  eof,
   fail,
   parse,
   string,
@@ -29,19 +31,34 @@ boolean =
 digits :: Parser [Int]
 digits = some digit
 
--- >>> constructDigit [4, 2, 0]
--- 420
-constructDigit :: [Int] -> Int
-constructDigit = sum . zipWith construct [0 ..] . reverse
+-- >>> constructIntegerPart [4, 2, 0]
+constructIntegerPart :: [Int] -> Int
+constructIntegerPart = sum . zipWith construct [0 ..] . reverse
  where
   construct i digit = digit * (10 ^ i)
 
+-- >>> constructFloatingPart [4, 2, 0, 3, 0]
+-- 0.4203
+
+-- >>> constructFloatingPart []
+-- 0.0
+constructFloatingPart :: [Int] -> Float
+constructFloatingPart = sum . zipWith construct [1 ..]
+ where
+  construct i digit = (realToFrac digit) / (10 ^ i)
+
+-- TODO exponent
 number :: Parser Float
 number = do
   sign <- optional (char '-')
-  res <- some digit
-  let n = realToFrac $ constructDigit res
-  case (res, sign) of
+  integerPart <- some digit
+  fractionalPart <- optional $ do
+    char '.'
+    some digit
+
+  let n = realToFrac (constructIntegerPart integerPart) + constructFloatingPart (fromMaybe [] fractionalPart)
+
+  case (integerPart, sign) of
     (0 : _ : _, _) -> fail "a number different than zero" "0"
     (_, Just _) -> return (- n)
     (_, Nothing) -> return n
@@ -56,4 +73,4 @@ json =
     ]
 
 parseJson :: String -> Either ParsingError Json
-parseJson = parse json
+parseJson = parse (json <* eof)

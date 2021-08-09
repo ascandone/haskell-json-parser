@@ -26,11 +26,13 @@ primitives =
     , TestLabel "numbers" $
         TestList
           [ TestCase $
-              assertJsEqual "integer" "0" (Enc.number 0.0)
+              assertJsEqual "zero" "0" (Enc.number 0.0)
           , TestCase $
               assertJsEqual "integer" "10" (Enc.number 10.0)
           , TestCase $
-              assertJsEqual "integer" "-10" (Enc.number (-10.0))
+              assertJsEqual "negative integer" "-10" (Enc.number (-10.0))
+          , TestCase $
+              assertJsEqual "float" "1.1" (Enc.number 1.1)
           ]
           -- TODO escape chars
           -- , TestCase $
