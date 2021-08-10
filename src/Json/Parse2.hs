@@ -2,6 +2,7 @@ module Json.Parse2 (parseJson) where
 
 import Control.Applicative (Alternative (many, some, (<|>)), optional)
 import Control.Monad (void)
+import Data.Char (chr, isHexDigit)
 import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import Json.Internal (Json (..))
@@ -15,7 +16,9 @@ import ParsingCombinators (
   digit,
   eof,
   fail,
+  hexDigit,
   parse,
+  satisfy,
   sepBy,
   string,
  )
@@ -36,10 +39,10 @@ digits :: Parser [Int]
 digits = some digit
 
 -- >>> constructIntegerPart [4, 2, 0]
-constructIntegerPart :: [Int] -> Int
-constructIntegerPart = sum . zipWith construct [0 ..] . reverse
+constructIntegerPart :: Int -> [Int] -> Int
+constructIntegerPart base = sum . zipWith construct [0 ..] . reverse
  where
-  construct i digit = digit * (10 ^ i)
+  construct i digit = digit * (base ^ i)
 
 -- >>> constructFloatingPart [4, 2, 0, 3, 0]
 -- 0.4203
@@ -60,7 +63,7 @@ number = do
     char '.'
     some digit
 
-  let n = realToFrac (constructIntegerPart integerPart) + constructFloatingPart (fromMaybe [] fractionalPart)
+  let n = realToFrac (constructIntegerPart 10 integerPart) + constructFloatingPart (fromMaybe [] fractionalPart)
 
   case (integerPart, sign) of
     (0 : _ : _, _) -> fail "a number different than zero" "0"
@@ -77,6 +80,15 @@ array = between (char '[') (char ']') (json `sepBy` separator)
  where
   separator = many whitespace >> char ',' >> many whitespace
 
+unicode :: Parser Char
+unicode = do
+  a <- hexDigit
+  b <- hexDigit
+  c <- hexDigit
+  d <- hexDigit
+  let num = constructIntegerPart 16 [a, b, c, d]
+  return (chr num)
+
 escapeChar :: Parser Char
 escapeChar = do
   ch <- ParsingCombinators.any
@@ -89,7 +101,7 @@ escapeChar = do
     'n' -> return '\n'
     'r' -> return '\r'
     't' -> return '\t'
-    -- TODO unicode encoding
+    'u' -> unicode
     _ -> fail "expected escape char" [ch]
 
 string :: Parser String
