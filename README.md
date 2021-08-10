@@ -31,14 +31,14 @@ It supports both monadic instance
 
 data Person = Person
   { name :: String
-  , age :: Float
+  , age :: Int
   , id :: Maybe String
   }
 
 personDecoder :: Decoder Person
 personDecoder = do
   name <- field "name" string
-  age <- field "age" number
+  age <- field "age" int
   id <- field "id" (optional string)
   return Person{name, age, id}
 
@@ -53,6 +53,6 @@ personDecoder :: Decoder Person
 personDecoder =
   return Person
     <*> field "name" string
-    <*> field "age" number
+    <*> field "age" int
     <*> optionalField "id" (optional string)
 ```
