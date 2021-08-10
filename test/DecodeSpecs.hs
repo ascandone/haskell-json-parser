@@ -22,8 +22,8 @@ personDecoder :: Decoder Person
 personDecoder =
   return Person
     <*> Dec.field "name" Dec.string
-    <*> Dec.field "age" Dec.number
-    <*> Dec.optionalField "isDeveloper" Dec.boolean
+    <*> Dec.field "age" Dec.int
+    <*> Dec.optionalField "isDeveloper" Dec.bool
 
 firstTest :: Test
 firstTest =
@@ -31,7 +31,7 @@ firstTest =
     ( assertEqual
         "testEncode"
         (Dec.decode personDecoder personJson)
-        (Right $ Person "John Doe" 42.0 (Just True))
+        (Right $ Person "John Doe" 42 (Just True))
     )
 
 specs :: Test

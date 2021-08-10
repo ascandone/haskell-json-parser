@@ -2,7 +2,7 @@ module Common where
 
 data Person = Person
   { name :: String
-  , age :: Float
+  , age :: Int
   , isDeveloper :: Maybe Bool
   }
   deriving (Show, Eq)

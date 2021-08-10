@@ -14,6 +14,7 @@ module Json.Decode (
   optionalField,
   at,
   json,
+  int,
 ) where
 
 import Control.Applicative (Applicative (liftA2))
