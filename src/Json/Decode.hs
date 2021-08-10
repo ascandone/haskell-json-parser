@@ -57,6 +57,9 @@ import qualified Data.Map as Map
 import Json.Internal (Json (..))
 import Prelude hiding (null)
 
+{- |
+  Represents the error produced by running a decoder against a json value
+-}
 data Error
   = Failure String
   | Index Int Error

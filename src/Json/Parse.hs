@@ -1,4 +1,7 @@
-module Json.Parse (parseJson) where
+module Json.Parse (
+  parseJson,
+  ParsingError,
+) where
 
 import Control.Applicative (Alternative (many, some, (<|>)), optional)
 import Control.Monad (void)
@@ -138,5 +141,8 @@ json =
     , Object . Map.fromList <$> object
     ]
 
+{- |
+  Parse a string into a json value
+-}
 parseJson :: String -> Either ParsingError Json
 parseJson = parse (json <* eof)
