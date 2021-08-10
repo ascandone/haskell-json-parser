@@ -1,0 +1,1 @@
+stack exec -- haddock --html src/Json/Decode.hs src/Json/Encode.hs src/Json.hs src/Json/Parse.hs --odir=./docs
