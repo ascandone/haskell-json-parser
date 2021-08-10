@@ -11,9 +11,12 @@ module ParsingCombinators (
   choice,
   ParsingError,
   digit,
+  satisfy,
+  hexDigit,
 ) where
 
 import Control.Applicative (Alternative (empty, many, some, (<|>)), liftA2, optional)
+import Data.Char (toLower)
 import Prelude hiding (any, fail)
 
 data ParsingError = ParsingError
@@ -103,6 +106,27 @@ digit =
     '8' -> return 8
     '9' -> return 9
     _ -> fail "a digit" ['"', ch, '"']
+
+hexDigit :: Parser Int
+hexDigit =
+  any >>= \ch -> case toLower ch of
+    '0' -> return 0
+    '1' -> return 1
+    '2' -> return 2
+    '3' -> return 3
+    '4' -> return 4
+    '5' -> return 5
+    '6' -> return 6
+    '7' -> return 7
+    '8' -> return 8
+    '9' -> return 9
+    'a' -> return 10
+    'b' -> return 11
+    'c' -> return 12
+    'd' -> return 13
+    'e' -> return 14
+    'f' -> return 15
+    _ -> fail "an hex digit" ['"', ch, '"']
 
 string :: String -> Parser String
 string [] = return []

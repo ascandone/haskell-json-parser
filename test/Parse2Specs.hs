@@ -37,11 +37,13 @@ primitives =
     , TestLabel "strings" $
         TestList
           [ TestCase $
-              assertJsEqual "strings" "\"hello\"" (Enc.string "hello")
+              assertJsEqual "simple" "\"hello\"" (Enc.string "hello")
           , TestCase $
-              assertJsEqual "strings" "\"<\\n>\"" (Enc.string "<\n>")
+              assertJsEqual "newline" "\"<\\n>\"" (Enc.string "<\n>")
           , TestCase $
-              assertJsEqual "strings" "\"<\\\">\"" (Enc.string "<\">")
+              assertJsEqual "backslash" "\"<\\\">\"" (Enc.string "<\">")
+          , TestCase $
+              assertJsEqual "unicode" "\"<\\u26A1>\"" (Enc.string "<⚡>")
           ]
     ]
 
@@ -85,11 +87,11 @@ arrays =
                     Left _ -> return ()
                     Right _ -> assertFailure "invalid arr"
               ]
-              -- , TestCase $
-              --     assertJsEqual
-              --       "heterogeneous arr"
-              --       "[1, \"x\", null]"
-              --       (Enc.array [Enc.number 1, Enc.string "x", Enc.null])
+    , TestCase $
+        assertJsEqual
+          "heterogeneous arr"
+          "[1, \"x\", null]"
+          (Enc.array [Enc.number 1, Enc.string "x", Enc.null])
     ]
 
 objects :: Test
