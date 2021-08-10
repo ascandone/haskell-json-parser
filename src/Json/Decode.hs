@@ -3,9 +3,9 @@ module Json.Decode (
   Error (..),
   decode,
   string,
-  number,
-  boolean,
-  array,
+  float,
+  bool,
+  list,
   field,
   oneOf,
   nullable,
@@ -81,15 +81,23 @@ string = Decoder $ \x -> case x of
   String value -> Right value
   json -> Left $ failure "string" json
 
-boolean :: Decoder Bool
-boolean = Decoder $ \x -> case x of
+bool :: Decoder Bool
+bool = Decoder $ \x -> case x of
   Boolean value -> Right value
   json -> Left $ failure "boolean" json
 
-number :: Decoder Float
-number = Decoder $ \x -> case x of
+float :: Decoder Float
+float = Decoder $ \x -> case x of
   Number value -> Right value
   json -> Left $ failure "number" json
+
+int :: Decoder Int
+int = do
+  f <- float
+  let intPart = (round f) :: Int
+  if (realToFrac intPart) == f
+    then return intPart
+    else fail "int"
 
 null :: Decoder ()
 null = Decoder $ \x -> case x of
@@ -98,8 +106,8 @@ null = Decoder $ \x -> case x of
 
 -- Combinators
 
-array :: Decoder a -> Decoder [a]
-array decoder = Decoder $ \x -> case x of
+list :: Decoder a -> Decoder [a]
+list decoder = Decoder $ \x -> case x of
   Array values ->
     foldr reducer (Right []) (zip [0 ..] values)
    where
