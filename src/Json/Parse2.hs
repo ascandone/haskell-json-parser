@@ -2,6 +2,7 @@ module Json.Parse2 (parseJson) where
 
 import Control.Applicative (Alternative (many, some, (<|>)), optional)
 import Control.Monad (void)
+import qualified Data.Map as Map
 import Data.Maybe (fromMaybe)
 import Json.Internal (Json (..))
 import ParsingCombinators (
@@ -72,7 +73,7 @@ whitespace =
     char ' ' <|> char '\n' <|> char '\t' <|> char '\r'
 
 array :: Parser [Json]
-array = between (char '[') (char ']') (sepBy json separator)
+array = between (char '[') (char ']') (json `sepBy` separator)
  where
   separator = many whitespace >> char ',' >> many whitespace
 
@@ -100,6 +101,19 @@ string = between (char '"') (char '"') $
       '\\' -> escapeChar
       _ -> return ch
 
+object :: Parser [(String, Json)]
+object = between (char '{') (char '}') (kw `sepBy` separator)
+ where
+  separator = many whitespace >> char ',' >> many whitespace
+  kw = do
+    many whitespace
+    key <- Json.Parse2.string
+    many whitespace
+    char ':'
+    many whitespace
+    value <- json
+    return (key, value)
+
 json :: Parser Json
 json =
   choice
@@ -109,6 +123,7 @@ json =
     , Number <$> number
     , Array <$> array
     , String <$> Json.Parse2.string
+    , Object . Map.fromList <$> object
     ]
 
 parseJson :: String -> Either ParsingError Json

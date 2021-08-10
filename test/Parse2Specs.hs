@@ -92,17 +92,31 @@ arrays =
               --       (Enc.array [Enc.number 1, Enc.string "x", Enc.null])
     ]
 
--- objects :: Test
--- objects =
---   TestList
---     [ TestCase $
---         assertJsEqual "simple objs" "42" (Enc.number 42)
---     ]
+objects :: Test
+objects =
+  TestList
+    [ TestCase $
+        assertJsEqual "empty obj" "{}" (Enc.object [])
+    , TestCase $
+        assertJsEqual "simple obj" "{\"x\":42}" (Enc.object [("x", Enc.number 42)])
+    , TestCase $
+        assertJsEqual
+          "two keys"
+          "{\"x\":0,\"y\":1}"
+          ( Enc.object [("x", Enc.number 0), ("y", Enc.number 1)]
+          )
+    , TestCase $
+        assertJsEqual
+          "two keys white whitespace"
+          "{  \"x\"  \t :  0  ,\n \"y\":1}"
+          ( Enc.object [("x", Enc.number 0), ("y", Enc.number 1)]
+          )
+    ]
 
 specs :: Test
 specs =
   TestList
     [ TestLabel "primitives" primitives
     , TestLabel "arrays" arrays
-    -- , TestLabel "objects" objects
+    , TestLabel "objects" objects
     ]
