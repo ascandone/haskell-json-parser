@@ -1,91 +1,142 @@
 module Json.Parse (parseJson) where
 
-import Control.Applicative ((<|>))
+import Control.Applicative (Alternative (many, some, (<|>)), optional)
 import Control.Monad (void)
-import Data.Functor (($>))
-import Data.Map (Map)
+import Data.Char (chr, isHexDigit)
 import qualified Data.Map as Map
-import Data.Void (Void)
+import Data.Maybe (fromMaybe)
 import Json.Internal (Json (..))
-import Text.Megaparsec (
-  MonadParsec (eof, try),
-  Parsec,
+import ParsingCombinators (
+  Parser,
+  ParsingError,
+  any,
   between,
+  char,
   choice,
-  many,
-  manyTill,
-  oneOf,
+  digit,
+  eof,
+  fail,
+  hexDigit,
   parse,
+  satisfy,
   sepBy,
-  skipMany,
+  string,
  )
-import Text.Megaparsec.Char (char, letterChar, string)
-import qualified Text.Megaparsec.Char.Lexer as L
-import Text.Megaparsec.Error (ParseErrorBundle)
-import Prelude hiding (null)
-
-type Parser = Parsec Void String
-
--- Utils
-spaceConsumer :: Parser ()
-spaceConsumer = skipMany (char ' ')
-
-symbol :: String -> Parser String
-symbol = L.symbol spaceConsumer
-
--- Primitives
+import Prelude hiding (fail, null)
 
 null :: Parser ()
-null = void (symbol "null")
+null = void $ ParsingCombinators.string "null"
 
-bool :: Parser Bool
-bool =
+boolean :: Parser Bool
+boolean =
   choice
-    [ True <$ symbol "true"
-    , False <$ symbol "false"
+    "boolean"
+    [ True <$ ParsingCombinators.string "true"
+    , False <$ ParsingCombinators.string "false"
     ]
 
+digits :: Parser [Int]
+digits = some digit
+
+-- >>> constructIntegerPart [4, 2, 0]
+constructIntegerPart :: Int -> [Int] -> Int
+constructIntegerPart base = sum . zipWith construct [0 ..] . reverse
+ where
+  construct i digit = digit * (base ^ i)
+
+-- >>> constructFloatingPart [4, 2, 0, 3, 0]
+-- 0.4203
+
+-- >>> constructFloatingPart []
+-- 0.0
+constructFloatingPart :: [Int] -> Float
+constructFloatingPart = sum . zipWith construct [1 ..]
+ where
+  construct i digit = (realToFrac digit) / (10 ^ i)
+
+-- TODO exponent
 number :: Parser Float
-number =
-  let value = try L.float <|> try L.decimal
-   in choice
-        [ fmap negate (char '-' >> value)
-        , value
-        ]
+number = do
+  sign <- optional (char '-')
+  integerPart <- some digit
+  fractionalPart <- optional $ do
+    char '.'
+    some digit
+
+  let n = realToFrac (constructIntegerPart 10 integerPart) + constructFloatingPart (fromMaybe [] fractionalPart)
+
+  case (integerPart, sign) of
+    (0 : _ : _, _) -> fail "a number different than zero" "0"
+    (_, Just _) -> return (- n)
+    (_, Nothing) -> return n
+
+whitespace :: Parser ()
+whitespace =
+  void $
+    char ' ' <|> char '\n' <|> char '\t' <|> char '\r'
 
 array :: Parser [Json]
-array =
-  between (symbol "[") (symbol "]") (json `sepBy` separator)
+array = between (char '[') (char ']') (json `sepBy` separator)
  where
-  separator = symbol ","
+  separator = many whitespace >> char ',' >> many whitespace
 
--- TODO letterChar
+unicode :: Parser Char
+unicode = do
+  a <- hexDigit
+  b <- hexDigit
+  c <- hexDigit
+  d <- hexDigit
+  let num = constructIntegerPart 16 [a, b, c, d]
+  return (chr num)
+
+escapeChar :: Parser Char
+escapeChar = do
+  ch <- ParsingCombinators.any
+  case ch of
+    '"' -> return '\"'
+    '\\' -> return '\\'
+    '/' -> return '/'
+    'b' -> return '\b'
+    'f' -> return '\f'
+    'n' -> return '\n'
+    'r' -> return '\r'
+    't' -> return '\t'
+    'u' -> unicode
+    _ -> fail "expected escape char" [ch]
+
 string :: Parser String
-string = do
-  symbol "\""
-  letterChar `manyTill` symbol "\""
+string = between (char '"') (char '"') $
+  many $ do
+    ch <- ParsingCombinators.any
+    case ch of
+      '"' -> fail "expected char" "\""
+      '\\' -> escapeChar
+      _ -> return ch
 
-object :: Parser (Map String Json)
-object =
-  let keyValue :: Parser (String, Json)
-      keyValue = do
-        key <- Json.Parse.string
-        symbol ":"
-        value <- json
-        return (key, value)
-   in Map.fromList
-        <$> between (symbol "{") (symbol "}") (keyValue `sepBy` symbol ",")
+object :: Parser [(String, Json)]
+object = between (char '{') (char '}') (kw `sepBy` separator)
+ where
+  separator = many whitespace >> char ',' >> many whitespace
+  kw = do
+    many whitespace
+    key <- Json.Parse.string
+    many whitespace
+    char ':'
+    many whitespace
+    value <- json
+    return (key, value)
 
 json :: Parser Json
 json =
   choice
+    "json"
     [ Null <$ null
-    , Boolean <$> bool
+    , Boolean <$> boolean
     , Number <$> number
-    , String <$> Json.Parse.string
     , Array <$> array
-    , Object <$> object
+    , String <$> Json.Parse.string
+    , Object . Map.fromList <$> object
     ]
 
-parseJson :: String -> Either (ParseErrorBundle String Void) Json
-parseJson = parse (json <* eof) ""
+parseJson :: String -> Either ParsingError Json
+parseJson = parse (json <* eof)

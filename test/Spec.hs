@@ -8,7 +8,6 @@ import Test.HUnit (
  )
 
 import qualified DecodeSpecs
-import qualified Parse2Specs
 import qualified ParseSpecs
 import qualified ParsingCombinatorsSpecs
 
@@ -16,7 +15,7 @@ tests :: [Test]
 tests =
   [ DecodeSpecs.specs
   , ParsingCombinatorsSpecs.specs
-  , Parse2Specs.specs
+  , ParseSpecs.specs
   ]
 
 main :: IO ()

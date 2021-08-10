@@ -30,7 +30,6 @@ library
       Json.Encode
       Json.Internal
       Json.Parse
-      Json.Parse2
       ParsingCombinators
   other-modules:
       Paths_json_parser
@@ -39,7 +38,6 @@ library
   build-depends:
       base >=4.7 && <5
     , containers
-    , megaparsec
   default-language: Haskell2010
 
 executable json-parser-exe
@@ -53,7 +51,6 @@ executable json-parser-exe
       base >=4.7 && <5
     , containers
     , json-parser
-    , megaparsec
   default-language: Haskell2010
 
 test-suite json-parser-test
@@ -62,7 +59,6 @@ test-suite json-parser-test
   other-modules:
       Common
       DecodeSpecs
-      Parse2Specs
       ParseSpecs
       ParsingCombinatorsSpecs
       Paths_json_parser
@@ -74,5 +70,4 @@ test-suite json-parser-test
     , base >=4.7 && <5
     , containers
     , json-parser
-    , megaparsec
   default-language: Haskell2010
