@@ -72,7 +72,7 @@ failure expected got =
 -- Primitives
 
 {- |
-  Decode a string
+  Decode a json string value
 
  >>> decode string (Json.Encode.string "Hello")
  Right "Hello"
@@ -82,16 +82,26 @@ string = Decoder $ \x -> case x of
   String value -> Right value
   json -> Left $ failure "string" json
 
+-- | Decode a json boolean value
 bool :: Decoder Bool
 bool = Decoder $ \x -> case x of
   Boolean value -> Right value
   json -> Left $ failure "boolean" json
 
+-- | Decode a json number value
 float :: Decoder Float
 float = Decoder $ \x -> case x of
   Number value -> Right value
   json -> Left $ failure "number" json
 
+{- | Decode a json number value that happens to be an integer
+
+ >>> decode int (Json.Encode.number 10.0)
+ Right 10
+
+ >>> decode int (Json.Encode.number 10.1)
+ Left _
+-}
 int :: Decoder Int
 int = do
   f <- float
