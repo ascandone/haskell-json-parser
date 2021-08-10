@@ -1,20 +1,51 @@
+{- |
+  This module is needed to decode a @Json@ type into regular haskell values
+
+@
+import Json.Decode as Dec
+import Json.Parse (parseJson)
+
+data Person = Person
+  { name :: String
+  , age :: Maybe Int
+  }
+
+json :: Json
+json = parseJson "{ \\"name\\" : \\"John Doe\\", \\"age\\":  null  }"
+
+person :: Person
+person =
+  return Person
+    \<*\> field "name" string
+    \<*\> field "age" int
+    \<*\> optionalField "id" (optional string)
+
+@
+-}
 module Json.Decode (
+  -- * Run decoders
   Decoder,
-  Error (..),
   decode,
+  Error (..),
+
+  -- * Decoders
+
+  -- ** Primitives
   string,
   float,
   bool,
+  int,
+  null,
+  json,
+
+  -- ** Higher order combinators
   list,
   field,
   oneOf,
   nullable,
-  null,
   optional,
   optionalField,
   at,
-  json,
-  int,
 ) where
 
 import Control.Applicative (Applicative (liftA2))
@@ -110,6 +141,7 @@ int = do
     then return intPart
     else fail "int"
 
+-- | Decode a json null value
 null :: Decoder ()
 null = Decoder $ \x -> case x of
   Null -> Right ()
@@ -117,6 +149,11 @@ null = Decoder $ \x -> case x of
 
 -- Combinators
 
+{- | Decode a json list
+
+ >>> decode (list float) (Json.Encode.array [Json.Encode.number 1, Json.Encode.number 2])
+ Right [1.0,2.0]
+-}
 list :: Decoder a -> Decoder [a]
 list decoder = Decoder $ \x -> case x of
   Array values ->
@@ -128,6 +165,11 @@ list decoder = Decoder $ \x -> case x of
       return (xValue : accValue)
   json -> Left $ failure "array" json
 
+{- | Decode a field of a json object
+
+ >>> decode (field "x" float) (Json.Encode.object [("x", Json.Encode.number 42)])
+ Right 42
+-}
 field :: String -> Decoder a -> Decoder a
 field name decoder = Decoder $ \x -> case x of
   Object fieldsMap -> case Map.lookup name fieldsMap of
@@ -135,6 +177,7 @@ field name decoder = Decoder $ \x -> case x of
     Just json -> first (Field name) $ decode decoder json
   json -> Left $ failure "object" json
 
+-- | Decode nested fields of a json object
 at :: [String] -> Decoder a -> Decoder a
 at [] _ = fail "Expected fields"
 at [name] decoder = field name decoder
@@ -167,4 +210,4 @@ nullable decoder =
     ]
 
 json :: Decoder Json
-json = Decoder $ Right
+json = Decoder Right
