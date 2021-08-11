@@ -74,13 +74,14 @@ instance Alternative Parser where
         | otherwise -> (str', left)
       ok -> ok
 
+-- Primitives
+
 try :: Parser a -> Parser a
 try parser = Parser $ \str ->
   case runParser parser str of
     (_, left@(Left _)) -> (str, left)
     ok -> ok
 
--- Primitives
 any :: Parser Char
 any = Parser $ \str -> case str of
   [] -> ([], Left $ ParsingError "any char" "the end of input")
