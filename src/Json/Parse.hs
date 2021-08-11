@@ -65,11 +65,10 @@ constructFloatingPart = sum . zipWith construct [1 ..]
 number :: Parser Float
 number = do
   sign <- optional (char '-')
-  integerPart <- some (try digit)
-  fractionalPart <- optional $
-    try $ do
-      char '.'
-      some digit
+  integerPart <- digits
+  fractionalPart <- optional $ do
+    char '.'
+    digits
 
   let n = realToFrac (constructIntegerPart 10 integerPart) + constructFloatingPart (fromMaybe [] fractionalPart)
 
@@ -81,8 +80,13 @@ number = do
 whitespace :: Parser ()
 whitespace =
   void $
-    try $
-      char ' ' <|> char '\n' <|> char '\t' <|> char '\r'
+    choice
+      "whitespace"
+      [ char ' '
+      , char '\n'
+      , char '\t'
+      , char '\r'
+      ]
 
 array :: Parser [Json]
 array = between (char '[') (char ']') (json `sepBy` separator)

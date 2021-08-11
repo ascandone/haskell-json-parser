@@ -89,7 +89,7 @@ eof = Parser $ \str -> case str of
 -- Combinators
 
 choice :: String -> [Parser a] -> Parser a
-choice description = foldr (\p p' -> try p <|> p') (fail description "no match")
+choice description = foldr (<|>) (fail description "no match")
 
 satisfy :: String -> (Char -> Bool) -> Parser Char
 satisfy description predicate = do
