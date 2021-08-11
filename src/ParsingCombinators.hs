@@ -84,12 +84,11 @@ instance MonadFail Parser where
 
 instance Alternative Parser where
   empty = fail "a match"
-  parser <|> parser' = Parser $ \state ->
-    case runParser parser state of
-      (state', left@(Left _))
-        | state == state' -> runParser parser' state
-        | otherwise -> (state', left)
-      ok -> ok
+  (Parser p) <|> (Parser p') = Parser $ \state@State{index = index} ->
+    case (p state, p' state) of
+      (res@(State{index = index'}, Left _), _) | index /= index' -> res
+      ((_, Left _), res) -> res
+      (res, _) -> res
 
 -- Primitives
 

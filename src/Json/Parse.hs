@@ -166,7 +166,7 @@ array = between (symbol "[") (symbol "]") (body `sepBy` separator)
 -- Right {"x": 0.0, "y": 1.0}
 
 -- >>> parse object "{\"key\": _ 42}"
--- Left Expected a json value, got '_' instead.
+-- Left "At 8:\nExpected a json value, got '_' instead."
 
 object :: Parser [(String, Json)]
 object = between (symbol "{") (symbol "}") (keyValue `sepBy` separator)
@@ -201,7 +201,7 @@ parser = json <* many whitespace <* eof
   Parse a string into a json value
 -}
 
--- >>> parseJson "[2, [20 _]]"
--- Left "At 0:\nExpected a json value, got '[' instead."
+-- >>> parseJson "[2, [20, _]]"
+-- Left "At 9:\nExpected a json value, got '_' instead."
 parseJson :: String -> Either String Json
 parseJson = parse parser
