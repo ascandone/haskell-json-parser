@@ -78,30 +78,6 @@ number = do
     (_, Just _) -> return (- n)
     (_, Nothing) -> return n
 
--- >>> parse whitespace "x"
--- Left Expected whitespace, got no match instead.
-
--- >>> parse whitespace "\t"
--- Right ()
-whitespace :: Parser ()
-whitespace =
-  void $
-    choice
-      "whitespace"
-      [ symbol " "
-      , symbol "\n"
-      , symbol "\t"
-      , symbol "\r"
-      ]
-
-array :: Parser [Json]
-array = between (symbol "[") (symbol "]") (json `sepBy` separator)
- where
-  separator = do
-    many whitespace
-    symbol ","
-    many whitespace
-
 unicode :: Parser Char
 unicode = do
   a <- hexDigit
@@ -143,6 +119,36 @@ string = between (symbol "\"") (symbol "\"") $
         '"' -> fail "expected char"
         '\\' -> escapeChar
         _ -> return ch
+
+-- >>> parse whitespace "x"
+-- Left Expected whitespace, got 'x' instead.
+
+-- >>> parse whitespace "\t"
+-- Right ()
+whitespace :: Parser ()
+whitespace =
+  void $
+    choice
+      "whitespace"
+      [ symbol " "
+      , symbol "\n"
+      , symbol "\t"
+      , symbol "\r"
+      ]
+
+-- >>> parse array "[]"
+-- Right []
+
+-- >>> parse array "[null]"
+-- Right [null]
+
+-- >>> parse array "[ 1 , 4 ]"
+-- Right [1.0,4.0]
+array :: Parser [Json]
+array = between (symbol "[") (symbol "]") (body `sepBy` separator)
+ where
+  separator = symbol ","
+  body = between (many whitespace) (many whitespace) json
 
 -- >>> parse object "{}"
 -- Right []
@@ -194,5 +200,8 @@ parser = json <* many whitespace <* eof
 {- |
   Parse a string into a json value
 -}
+
+-- >>> parseJson "[4.0 ]"
+-- Left Expected ",", got EOF instead.
 parseJson :: String -> Either ParsingError Json
 parseJson = parse parser

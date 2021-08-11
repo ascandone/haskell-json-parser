@@ -79,6 +79,11 @@ arrays =
                     "[1  \r  \n , \t   2]"
                     value
               , TestCase $
+                  assertJsEqual
+                    "arr with trailing whitespace"
+                    "[1  \r  \n , \t   2   ]"
+                    value
+              , TestCase $
                   case parseJson "[1, 2, ???]" of
                     Left _ -> return ()
                     Right _ -> assertFailure "invalid arr"
