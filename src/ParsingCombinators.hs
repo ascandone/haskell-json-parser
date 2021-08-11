@@ -19,7 +19,9 @@ module ParsingCombinators (
 
 import Control.Applicative (Alternative (empty, many, some, (<|>)), liftA2, optional)
 import Control.Monad (MonadFail (fail), void)
+import Data.Bifunctor (first)
 import Data.Char (toLower)
+import Data.Function ((&))
 import Prelude hiding (any, fail)
 
 data ParsingError = ParsingError
@@ -49,8 +51,10 @@ newtype Parser a = Parser
   { runParser :: State -> (State, Either ParsingError a)
   }
 
-parse :: Parser a -> String -> Either ParsingError a
-parse parser str = let (_, result) = runParser parser (make str) in result
+parse :: Parser c -> String -> Either String c
+parse parser str =
+  let (State (i, _), result) = runParser parser (make str)
+   in result & first (\err -> "At " ++ show i ++ ":\n" ++ show err)
 
 instance Functor Parser where
   fmap f parser = parser >>= (return . f)

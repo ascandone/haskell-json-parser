@@ -201,7 +201,7 @@ parser = json <* many whitespace <* eof
   Parse a string into a json value
 -}
 
--- >>> parseJson "[4.0 ]"
--- Left Expected ",", got EOF instead.
-parseJson :: String -> Either ParsingError Json
+-- >>> parseJson "[2, [20 _]]"
+-- Left "At 0:\nExpected a json value, got '[' instead."
+parseJson :: String -> Either String Json
 parseJson = parse parser
