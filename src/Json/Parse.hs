@@ -24,19 +24,20 @@ import ParsingCombinators (
   satisfy,
   sepBy,
   string,
+  symbol,
   try,
  )
 import Prelude hiding (fail, null)
 
 null :: Parser ()
-null = void $ ParsingCombinators.string "null"
+null = void $ symbol "null"
 
 boolean :: Parser Bool
 boolean =
   choice
     "boolean"
-    [ True <$ ParsingCombinators.string "true"
-    , False <$ ParsingCombinators.string "false"
+    [ True <$ symbol "true"
+    , False <$ symbol "false"
     ]
 
 digits :: Parser [Int]
@@ -64,34 +65,42 @@ constructFloatingPart = sum . zipWith construct [1 ..]
 -- TODO exponent
 number :: Parser Float
 number = do
-  sign <- optional (char '-')
+  sign <- optional (symbol "-")
   integerPart <- digits
   fractionalPart <- optional $ do
-    char '.'
+    symbol "."
     digits
 
   let n = realToFrac (constructIntegerPart 10 integerPart) + constructFloatingPart (fromMaybe [] fractionalPart)
 
   case (integerPart, sign) of
-    (0 : _ : _, _) -> fail "a number different than zero" "0"
+    (0 : _ : _, _) -> fail "a number different than zero"
     (_, Just _) -> return (- n)
     (_, Nothing) -> return n
 
+-- >>> parse whitespace "x"
+-- Left Expected whitespace, got no match instead.
+
+-- >>> parse whitespace "\t"
+-- Right ()
 whitespace :: Parser ()
 whitespace =
   void $
     choice
       "whitespace"
-      [ char ' '
-      , char '\n'
-      , char '\t'
-      , char '\r'
+      [ symbol " "
+      , symbol "\n"
+      , symbol "\t"
+      , symbol "\r"
       ]
 
 array :: Parser [Json]
-array = between (char '[') (char ']') (json `sepBy` separator)
+array = between (symbol "[") (symbol "]") (json `sepBy` separator)
  where
-  separator = many whitespace >> char ',' >> many whitespace
+  separator = do
+    many whitespace
+    symbol ","
+    many whitespace
 
 unicode :: Parser Char
 unicode = do
@@ -115,7 +124,7 @@ escapeChar = do
     'r' -> return '\r'
     't' -> return '\t'
     'u' -> unicode
-    _ -> fail "expected escape char" [ch]
+    _ -> fail "expected escape char"
 
 -- >>> parse Json.Parse.string "\"\""
 -- Right ""
@@ -126,12 +135,12 @@ escapeChar = do
 -- >>> parse Json.Parse.string "\"he\nllo\""
 -- Right "he\nllo"
 string :: Parser String
-string = between (char '"') (char '"') $
+string = between (symbol "\"") (symbol "\"") $
   many $
     try $ do
       ch <- ParsingCombinators.any
       case ch of
-        '"' -> fail "expected char" "\""
+        '"' -> fail "expected char"
         '\\' -> escapeChar
         _ -> return ch
 
@@ -150,11 +159,14 @@ string = between (char '"') (char '"') $
 -- >>> parse parser "{  \"x\"  \t :  0  ,\n \"y\":1}"
 -- Right {"x": 0.0, "y": 1.0}
 
+-- >>> parse object "{\"key\": _ 42}"
+-- Left Expected a json value, got '_' instead.
+
 object :: Parser [(String, Json)]
-object = between (char '{') (many whitespace <* char '}') (kw `sepBy` separator)
+object = between (symbol "{") (symbol "}") (keyValue `sepBy` separator)
  where
-  separator = many whitespace >> char ',' >> many whitespace
-  kw = do
+  separator = symbol ","
+  keyValue = do
     many whitespace
     key <- Json.Parse.string
     many whitespace
@@ -167,7 +179,7 @@ object = between (char '{') (many whitespace <* char '}') (kw `sepBy` separator)
 json :: Parser Json
 json =
   choice
-    "json"
+    "a json value"
     [ Null <$ null
     , Boolean <$> boolean
     , Number <$> number

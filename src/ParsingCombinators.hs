@@ -14,9 +14,11 @@ module ParsingCombinators (
   satisfy,
   hexDigit,
   try,
+  symbol,
 ) where
 
 import Control.Applicative (Alternative (empty, many, some, (<|>)), liftA2, optional)
+import Control.Monad (void)
 import Data.Char (toLower)
 import Prelude hiding (any, fail)
 
@@ -55,7 +57,7 @@ instance Monad Parser where
       (str', Left e) -> (str', Left e)
 
 instance Alternative Parser where
-  empty = fail "X" "Y"
+  empty = Parser $ \str -> (str, Left $ ParsingError "a match" str)
   parser <|> parser' = Parser $ \str ->
     case runParser parser str of
       (str', left@(Left _))
@@ -69,10 +71,13 @@ try parser = Parser $ \str ->
     (_, left@(Left _)) -> (str, left)
     ok -> ok
 
-fail :: String -> String -> Parser a
-fail expected encountered = Parser $ \str ->
+fail :: String -> Parser a
+fail expected = Parser $ \str ->
   ( str
-  , Left $ ParsingError expected encountered
+  , Left $
+      ParsingError expected $ case str of
+        [] -> "EOF"
+        hd : _ -> show hd
   )
 
 -- Primitives
@@ -89,17 +94,17 @@ eof = Parser $ \str -> case str of
 -- Combinators
 
 choice :: String -> [Parser a] -> Parser a
-choice description = foldr (<|>) (fail description "no match")
+choice description = foldr (<|>) (fail description)
 
 satisfy :: String -> (Char -> Bool) -> Parser Char
 satisfy description predicate = do
   ch <- any
   if predicate ch
     then return ch
-    else fail description ['"', ch, '"']
+    else fail description
 
 char :: Char -> Parser Char
-char ch = try $ satisfy ['"', ch, '"'] (== ch)
+char ch = satisfy ['"', ch, '"'] (== ch)
 
 digit :: Parser Int
 digit =
@@ -114,7 +119,7 @@ digit =
     '7' -> return 7
     '8' -> return 8
     '9' -> return 9
-    _ -> fail "a digit" ['"', ch, '"']
+    _ -> fail "a digit"
 
 hexDigit :: Parser Int
 hexDigit =
@@ -135,13 +140,14 @@ hexDigit =
     'd' -> return 13
     'e' -> return 14
     'f' -> return 15
-    _ -> fail "an hex digit" ['"', ch, '"']
+    _ -> fail "an hex digit"
 
 string :: String -> Parser String
-string = try . parser
- where
-  parser [] = return []
-  parser (ch : chs) = (:) <$> char ch <*> string chs
+string [] = return []
+string (ch : chs) = (:) <$> char ch <*> string chs
+
+symbol :: String -> Parser ()
+symbol = void . try . string
 
 between :: Parser ignore -> Parser ignore2 -> Parser a -> Parser a
 between open close value = open *> value <* close
