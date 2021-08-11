@@ -24,6 +24,7 @@ import ParsingCombinators (
   satisfy,
   sepBy,
   string,
+  try,
  )
 import Prelude hiding (fail, null)
 
@@ -39,7 +40,7 @@ boolean =
     ]
 
 digits :: Parser [Int]
-digits = some digit
+digits = some (try digit)
 
 -- >>> constructIntegerPart [4, 2, 0]
 constructIntegerPart :: Int -> [Int] -> Int
@@ -57,14 +58,18 @@ constructFloatingPart = sum . zipWith construct [1 ..]
  where
   construct i digit = (realToFrac digit) / (10 ^ i)
 
+-- >>> parse number "42.2"
+-- Right 42.2
+
 -- TODO exponent
 number :: Parser Float
 number = do
   sign <- optional (char '-')
-  integerPart <- some digit
-  fractionalPart <- optional $ do
-    char '.'
-    some digit
+  integerPart <- some (try digit)
+  fractionalPart <- optional $
+    try $ do
+      char '.'
+      some digit
 
   let n = realToFrac (constructIntegerPart 10 integerPart) + constructFloatingPart (fromMaybe [] fractionalPart)
 
@@ -76,7 +81,8 @@ number = do
 whitespace :: Parser ()
 whitespace =
   void $
-    char ' ' <|> char '\n' <|> char '\t' <|> char '\r'
+    try $
+      char ' ' <|> char '\n' <|> char '\t' <|> char '\r'
 
 array :: Parser [Json]
 array = between (char '[') (char ']') (json `sepBy` separator)
@@ -107,17 +113,41 @@ escapeChar = do
     'u' -> unicode
     _ -> fail "expected escape char" [ch]
 
+-- >>> parse Json.Parse.string "\"\""
+-- Right ""
+
+-- >>> parse Json.Parse.string "\"hello\""
+-- Right "hello"
+
+-- >>> parse Json.Parse.string "\"he\nllo\""
+-- Right "he\nllo"
 string :: Parser String
 string = between (char '"') (char '"') $
-  many $ do
-    ch <- ParsingCombinators.any
-    case ch of
-      '"' -> fail "expected char" "\""
-      '\\' -> escapeChar
-      _ -> return ch
+  many $
+    try $ do
+      ch <- ParsingCombinators.any
+      case ch of
+        '"' -> fail "expected char" "\""
+        '\\' -> escapeChar
+        _ -> return ch
+
+-- >>> parse object "{}"
+-- Right []
+
+-- >>> parse object "{\"key\":42}"
+-- Right [("key",42.0)]
+
+-- >>> parse object "{  \"key\"  :  42  }"
+-- Right [("key",42.0)]
+
+-- >>> parse object "{  \"key\"  :  42  , \"k2\": \"hi\" }"
+-- Right [("key",42.0),("k2","hi")]
+
+-- >>> parse parser "{  \"x\"  \t :  0  ,\n \"y\":1}"
+-- Right {"x": 0.0, "y": 1.0}
 
 object :: Parser [(String, Json)]
-object = between (char '{') (char '}') (kw `sepBy` separator)
+object = between (char '{') (many whitespace <* char '}') (kw `sepBy` separator)
  where
   separator = many whitespace >> char ',' >> many whitespace
   kw = do
@@ -127,6 +157,7 @@ object = between (char '{') (char '}') (kw `sepBy` separator)
     char ':'
     many whitespace
     value <- json
+    many whitespace
     return (key, value)
 
 json :: Parser Json
@@ -141,8 +172,11 @@ json =
     , Object . Map.fromList <$> object
     ]
 
+parser :: Parser Json
+parser = json <* eof
+
 {- |
   Parse a string into a json value
 -}
 parseJson :: String -> Either ParsingError Json
-parseJson = parse (json <* eof)
+parseJson = parse parser

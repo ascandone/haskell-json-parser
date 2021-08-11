@@ -13,6 +13,7 @@ module ParsingCombinators (
   digit,
   satisfy,
   hexDigit,
+  try,
 ) where
 
 import Control.Applicative (Alternative (empty, many, some, (<|>)), liftA2, optional)
@@ -57,8 +58,16 @@ instance Alternative Parser where
   empty = fail "X" "Y"
   parser <|> parser' = Parser $ \str ->
     case runParser parser str of
-      (_, left@(Left _)) -> runParser parser' str
+      (str', left@(Left _))
+        | str == str' -> runParser parser' str
+        | otherwise -> (str', left)
       ok -> ok
+
+try :: Parser a -> Parser a
+try parser = Parser $ \str ->
+  case runParser parser str of
+    (_, left@(Left _)) -> (str, left)
+    ok -> ok
 
 fail :: String -> String -> Parser a
 fail expected encountered = Parser $ \str ->
@@ -80,7 +89,7 @@ eof = Parser $ \str -> case str of
 -- Combinators
 
 choice :: String -> [Parser a] -> Parser a
-choice description = foldr (<|>) (fail description "no match")
+choice description = foldr (\p p' -> try p <|> p') (fail description "no match")
 
 satisfy :: String -> (Char -> Bool) -> Parser Char
 satisfy description predicate = do
@@ -90,7 +99,7 @@ satisfy description predicate = do
     else fail description ['"', ch, '"']
 
 char :: Char -> Parser Char
-char ch = satisfy ['"', ch, '"'] (== ch)
+char ch = try $ satisfy ['"', ch, '"'] (== ch)
 
 digit :: Parser Int
 digit =
@@ -129,8 +138,10 @@ hexDigit =
     _ -> fail "an hex digit" ['"', ch, '"']
 
 string :: String -> Parser String
-string [] = return []
-string (ch : chs) = (:) <$> char ch <*> string chs
+string = try . parser
+ where
+  parser [] = return []
+  parser (ch : chs) = (:) <$> char ch <*> string chs
 
 between :: Parser ignore -> Parser ignore2 -> Parser a -> Parser a
 between open close value = open *> value <* close

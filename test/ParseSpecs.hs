@@ -9,7 +9,7 @@ import qualified Json.Encode as Enc
 
 assertJsEqual :: String -> String -> Json -> Assertion
 assertJsEqual label stringJson exp =
-  assertEqual label (parseJson stringJson) (Right exp)
+  assertEqual label (Right exp) (parseJson stringJson)
 
 primitives :: Test
 primitives =
