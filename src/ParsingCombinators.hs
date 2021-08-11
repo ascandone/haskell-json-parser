@@ -35,13 +35,14 @@ instance Show ParsingError where
     "Expected " ++ expected ++ ", got " ++ encountered ++ " instead."
 
 data State = State {index :: Int, current :: String}
+  deriving (Show)
 
 make :: String -> State
 make str = State 0 str
 
 next :: State -> Maybe (Char, State)
 next (State _ "") = Nothing
-next (State str (ch : chs)) = Just (ch, State str chs)
+next (State i (ch : chs)) = Just (ch, State (i + 1) chs)
 
 instance Eq State where
   (State i _) == (State i' _) = i == i
