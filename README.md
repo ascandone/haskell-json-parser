@@ -2,7 +2,7 @@
 
 Lightweight library for json parsing, encoding and decoding with no external dependencies
 
-> **warning** this library is a minimal implementation built from scratch of a json parser and is not meant for production use. It follows the complete [json specs](https://www.json.org/json-en.html) and has some tests, but there might be some bugs, the error messages aren't quite good yet and is not optimized for large json strings, and most of docs are missing yet
+> **warning** this library is a minimal implementation built from scratch of a json parser and is not meant for production use. It follows the complete [json specs](https://www.json.org/json-en.html) and has some tests, but there might be some bugs, it is not optimized for large json strings, and most of docs are missing yet
 
 This module has 3 modules: `Json`, `Json.Parse`, `Json.Decode` and `Json.Encode`
 
