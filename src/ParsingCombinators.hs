@@ -18,7 +18,7 @@ module ParsingCombinators (
 ) where
 
 import Control.Applicative (Alternative (empty, many, some, (<|>)), liftA2, optional)
-import Control.Monad (void)
+import Control.Monad (MonadFail (fail), void)
 import Data.Char (toLower)
 import Prelude hiding (any, fail)
 
@@ -56,6 +56,15 @@ instance Monad Parser where
       (str', Right x) -> runParser (f x) str'
       (str', Left e) -> (str', Left e)
 
+instance MonadFail Parser where
+  fail expected = Parser $ \str ->
+    ( str
+    , Left $
+        ParsingError expected $ case str of
+          [] -> "EOF"
+          hd : _ -> show hd
+    )
+
 instance Alternative Parser where
   empty = fail "a match"
   parser <|> parser' = Parser $ \str ->
@@ -70,15 +79,6 @@ try parser = Parser $ \str ->
   case runParser parser str of
     (_, left@(Left _)) -> (str, left)
     ok -> ok
-
-fail :: String -> Parser a
-fail expected = Parser $ \str ->
-  ( str
-  , Left $
-      ParsingError expected $ case str of
-        [] -> "EOF"
-        hd : _ -> show hd
-  )
 
 -- Primitives
 any :: Parser Char
