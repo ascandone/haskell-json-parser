@@ -173,7 +173,7 @@ json =
     ]
 
 parser :: Parser Json
-parser = json <* eof
+parser = json <* many whitespace <* eof
 
 {- |
   Parse a string into a json value
