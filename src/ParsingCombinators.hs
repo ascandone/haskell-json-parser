@@ -34,17 +34,17 @@ instance Show ParsingError where
   show (ParsingError expected encountered) =
     "Expected " ++ expected ++ ", got " ++ encountered ++ " instead."
 
-data State = State (Int, String)
+data State = State {index :: Int, current :: String}
 
 make :: String -> State
-make str = State (0, str)
+make str = State 0 str
 
 next :: State -> Maybe (Char, State)
-next (State (_, "")) = Nothing
-next (State (str, ch : chs)) = Just (ch, State (str, chs))
+next (State _ "") = Nothing
+next (State str (ch : chs)) = Just (ch, State str chs)
 
 instance Eq State where
-  (State (i, _)) == (State (i', _)) = i == i
+  (State i _) == (State i' _) = i == i
 
 -- TODO state monad
 newtype Parser a = Parser
@@ -53,7 +53,7 @@ newtype Parser a = Parser
 
 parse :: Parser c -> String -> Either String c
 parse parser str =
-  let (State (i, _), result) = runParser parser (make str)
+  let (State i _, result) = runParser parser (make str)
    in result & first (\err -> "At " ++ show i ++ ":\n" ++ show err)
 
 instance Functor Parser where
