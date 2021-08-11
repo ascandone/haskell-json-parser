@@ -32,13 +32,25 @@ instance Show ParsingError where
   show (ParsingError expected encountered) =
     "Expected " ++ expected ++ ", got " ++ encountered ++ " instead."
 
+data State = State (Int, String)
+
+make :: String -> State
+make str = State (0, str)
+
+next :: State -> Maybe (Char, State)
+next (State (_, "")) = Nothing
+next (State (str, ch : chs)) = Just (ch, State (str, chs))
+
+instance Eq State where
+  (State (i, _)) == (State (i', _)) = i == i
+
 -- TODO state monad
 newtype Parser a = Parser
-  { runParser :: String -> (String, Either ParsingError a)
+  { runParser :: State -> (State, Either ParsingError a)
   }
 
 parse :: Parser a -> String -> Either ParsingError a
-parse parser str = let (_, result) = runParser parser str in result
+parse parser str = let (_, result) = runParser parser (make str) in result
 
 instance Functor Parser where
   fmap f parser = parser >>= (return . f)
@@ -50,47 +62,47 @@ instance Applicative Parser where
     binaryFunction x <$> parser2
 
 instance Monad Parser where
-  return x = Parser $ \str -> (str, Right x)
-  parser >>= f = Parser $ \str ->
-    case runParser parser str of
-      (str', Right x) -> runParser (f x) str'
-      (str', Left e) -> (str', Left e)
+  return x = Parser $ \state -> (state, Right x)
+  parser >>= f = Parser $ \state ->
+    case runParser parser state of
+      (state', Right x) -> runParser (f x) state'
+      (state', Left e) -> (state', Left e)
 
 instance MonadFail Parser where
-  fail expected = Parser $ \str ->
-    ( str
+  fail expected = Parser $ \state ->
+    ( state
     , Left $
-        ParsingError expected $ case str of
-          [] -> "EOF"
-          hd : _ -> show hd
+        ParsingError expected $ case next state of
+          Nothing -> "EOF"
+          Just (ch, _) -> show ch
     )
 
 instance Alternative Parser where
   empty = fail "a match"
-  parser <|> parser' = Parser $ \str ->
-    case runParser parser str of
-      (str', left@(Left _))
-        | str == str' -> runParser parser' str
-        | otherwise -> (str', left)
+  parser <|> parser' = Parser $ \state ->
+    case runParser parser state of
+      (state', left@(Left _))
+        | state == state' -> runParser parser' state
+        | otherwise -> (state', left)
       ok -> ok
 
 -- Primitives
 
 try :: Parser a -> Parser a
-try parser = Parser $ \str ->
-  case runParser parser str of
-    (_, left@(Left _)) -> (str, left)
+try parser = Parser $ \state ->
+  case runParser parser state of
+    (_, left@(Left _)) -> (state, left)
     ok -> ok
 
 any :: Parser Char
-any = Parser $ \str -> case str of
-  [] -> ([], Left $ ParsingError "any char" "the end of input")
-  c : cs -> (cs, Right c)
+any = Parser $ \state -> case next state of
+  Nothing -> (state, Left $ ParsingError "any char" "the end of input")
+  Just (ch, state') -> (state', Right ch)
 
 eof :: Parser ()
-eof = Parser $ \str -> case str of
-  [] -> ([], Right ())
-  c : _ -> (str, Left $ ParsingError "the end of input" ['"', c, '"'])
+eof = Parser $ \state -> case next state of
+  Nothing -> (state, Right ())
+  Just (ch, state') -> (state', Left $ ParsingError "the end of input" (show ch))
 
 -- Combinators
 
