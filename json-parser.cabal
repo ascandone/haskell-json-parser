@@ -31,6 +31,7 @@ library
       Json.Internal
       Json.Parse
       ParsingCombinators
+      ParsingCombinators.State
   other-modules:
       Paths_json_parser
   hs-source-dirs:

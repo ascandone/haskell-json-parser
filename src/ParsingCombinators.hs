@@ -13,7 +13,6 @@ module ParsingCombinators (
   digit,
   satisfy,
   hexDigit,
-  try,
   symbol,
 ) where
 
@@ -22,40 +21,31 @@ import Control.Monad (MonadFail (fail), void)
 import Data.Bifunctor (first)
 import Data.Char (toLower)
 import Data.Function ((&))
+import ParsingCombinators.State (State)
+import qualified ParsingCombinators.State as State
 import Prelude hiding (any, fail)
 
 data ParsingError = ParsingError
-  { expected :: String
+  { index :: Int
+  , expected :: String
   , encountered :: String
   }
   deriving (Eq)
 
 instance Show ParsingError where
-  show (ParsingError expected encountered) =
-    "Expected " ++ expected ++ ", got " ++ encountered ++ " instead."
-
-data State = State {index :: Int, current :: String}
-  deriving (Show)
-
-make :: String -> State
-make str = State 0 str
-
-next :: State -> Maybe (Char, State)
-next (State _ "") = Nothing
-next (State i (ch : chs)) = Just (ch, State (i + 1) chs)
-
-instance Eq State where
-  (State i _) == (State i' _) = i == i
+  show (ParsingError index expected encountered) =
+    "At " ++ show index ++ ":\nExpected " ++ expected ++ ", got " ++ encountered ++ " instead."
 
 -- TODO state monad
 newtype Parser a = Parser
-  { runParser :: State -> (State, Either ParsingError a)
+  { runParser :: State -> Either ParsingError (State, a)
   }
 
 parse :: Parser c -> String -> Either String c
 parse parser str =
-  let (State i _, result) = runParser parser (make str)
-   in result & first (\err -> "At " ++ show i ++ ":\n" ++ show err)
+  case runParser parser (State.make str) of
+    Right (_, value) -> Right value
+    Left err -> Left (show err)
 
 instance Functor Parser where
   fmap f parser = parser >>= (return . f)
@@ -67,47 +57,35 @@ instance Applicative Parser where
     binaryFunction x <$> parser2
 
 instance Monad Parser where
-  return x = Parser $ \state -> (state, Right x)
+  return x = Parser $ \state -> Right (state, x)
   parser >>= f = Parser $ \state ->
-    case runParser parser state of
-      (state', Right x) -> runParser (f x) state'
-      (state', Left e) -> (state', Left e)
+    runParser parser state >>= (\(state', x) -> runParser (f x) state')
 
 instance MonadFail Parser where
   fail expected = Parser $ \state ->
-    ( state
-    , Left $
-        ParsingError expected $ case next state of
-          Nothing -> "EOF"
-          Just (ch, _) -> show ch
-    )
+    Left $
+      ParsingError (State.index state) expected $ case State.next state of
+        Nothing -> "EOF"
+        Just (ch, _) -> show ch
 
 instance Alternative Parser where
   empty = fail "a match"
-  parser <|> parser' = Parser $ \state ->
-    case runParser parser state of
-      (state', left@(Left _))
-        | state == state' -> runParser parser' state
-        | otherwise -> (state', left)
-      ok -> ok
+  (Parser p) <|> (Parser p') = Parser $ \state ->
+    case (p state, p' state) of
+      (Left _, res) -> res
+      (res, _) -> res
 
 -- Primitives
 
-try :: Parser a -> Parser a
-try parser = Parser $ \state ->
-  case runParser parser state of
-    (_, left@(Left _)) -> (state, left)
-    ok -> ok
-
 any :: Parser Char
-any = Parser $ \state -> case next state of
-  Nothing -> (state, Left $ ParsingError "any char" "the end of input")
-  Just (ch, state') -> (state', Right ch)
+any = Parser $ \state -> case State.next state of
+  Nothing -> Left $ ParsingError (State.index state) "any char" "the end of input"
+  Just (ch, state') -> Right (state', ch)
 
 eof :: Parser ()
-eof = Parser $ \state -> case next state of
-  Nothing -> (state, Right ())
-  Just (ch, state') -> (state', Left $ ParsingError "the end of input" (show ch))
+eof = Parser $ \state -> case State.next state of
+  Nothing -> Right (state, ())
+  Just (ch, state') -> Left $ ParsingError (State.index state') "the end of input" (show ch)
 
 -- Combinators
 
@@ -165,7 +143,7 @@ string [] = return []
 string (ch : chs) = (:) <$> char ch <*> string chs
 
 symbol :: String -> Parser ()
-symbol = void . try . string
+symbol = void . string
 
 between :: Parser ignore -> Parser ignore2 -> Parser a -> Parser a
 between open close value = open *> value <* close

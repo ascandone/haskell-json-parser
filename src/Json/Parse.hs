@@ -25,7 +25,6 @@ import ParsingCombinators (
   sepBy,
   string,
   symbol,
-  try,
  )
 import Prelude hiding (fail, null)
 
@@ -41,7 +40,7 @@ boolean =
     ]
 
 digits :: Parser [Int]
-digits = some (try digit)
+digits = some digit
 
 -- >>> constructIntegerPart [4, 2, 0]
 constructIntegerPart :: Int -> [Int] -> Int
@@ -113,7 +112,7 @@ escapeChar = do
 string :: Parser String
 string = between (symbol "\"") (symbol "\"") $
   many $
-    try $ do
+    do
       ch <- ParsingCombinators.any
       case ch of
         '"' -> fail "expected char"
@@ -166,7 +165,7 @@ array = between (symbol "[") (symbol "]") (body `sepBy` separator)
 -- Right {"x": 0.0, "y": 1.0}
 
 -- >>> parse object "{\"key\": _ 42}"
--- Left Expected a json value, got '_' instead.
+-- Left "At 2:\nExpected \"}\", got 'k' instead."
 
 object :: Parser [(String, Json)]
 object = between (symbol "{") (symbol "}") (keyValue `sepBy` separator)
