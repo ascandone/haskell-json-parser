@@ -57,7 +57,7 @@ instance Monad Parser where
       (str', Left e) -> (str', Left e)
 
 instance Alternative Parser where
-  empty = Parser $ \str -> (str, Left $ ParsingError "a match" str)
+  empty = fail "a match"
   parser <|> parser' = Parser $ \str ->
     case runParser parser str of
       (str', left@(Left _))
