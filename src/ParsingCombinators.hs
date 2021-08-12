@@ -68,8 +68,8 @@ instance Applicative Parser where
 
 instance Monad Parser where
   return x = Parser $ \state -> (state, Right x)
-  parser >>= f = Parser $ \state ->
-    case runParser parser state of
+  (Parser p) >>= f = Parser $ \state ->
+    case p state of
       (state', Right x) -> runParser (f x) state'
       (state', Left e) -> (state', Left e)
 
